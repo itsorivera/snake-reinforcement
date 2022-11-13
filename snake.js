@@ -3,7 +3,7 @@ const canvas = document.getElementById('canvas')
 
 const canvasContext = canvas.getContext('2d');
 
-let gameSpeed = 10
+let gameSpeed = 1000
 //connect to canvas using 'gameSpeed'
 let gameSpeedElement = document.getElementById('gameSpeed')
 
@@ -17,9 +17,20 @@ let averageScoreElement = document.getElementById('averageScore')
 let epochNumber = 0
 let epochNumberElement = document.getElementById('epochNumber')
 
+let alphaValueElement = document.getElementById('alpha')
+let gammaValueElement = document.getElementById('gamma')
+
 let appleEated = false
 let size = 20
 let gameInterval
+
+alphaValueElement.addEventListener('change', () =>{
+    rlSnake.alpha = parseFloat(alphaValueElement.value)
+})
+
+gammaValueElement.addEventListener('change', () =>{
+    rlSnake.gamma = parseFloat(gammaValueElement.value)
+})
 
 gameSpeedElement.addEventListener('change', () =>{
     gameSpeed = parseInt(gameSpeedElement.value)
@@ -155,7 +166,10 @@ class RLSnake{
 
     constructor(){
         this.alpha = 0.2
-        this.gamma = 0.2
+        this.gamma = 0.1
+        gammaValueElement.value = this.gamma
+        alphaValueElement.value = this.alpha
+
         this.noEatLoopCount = 0
         this.maxNoEatLoopCount = 500
         this.isAheadClearIndex = 0
@@ -284,7 +298,7 @@ class RLSnake{
 
         if(this.noEatLoopCount > this.maxNoEatLoopCount){
             this.noEatLoopCount = 0
-            gameOver()
+            //gameOver()
             return
         }
         
@@ -463,3 +477,7 @@ class Apple{
 const snake = new Snake()
 let apple = new Apple()
 let rlSnake = new RLSnake()
+
+function resetSnake(){
+    snake.initVars()
+}
