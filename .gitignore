@@ -1,0 +1,17 @@
+# Python / Modeling
+modeling/.venv/
+modeling/__pycache__/
+modeling/models/*.zip
+modeling/models/*.pth
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Web App (Delegated to webapp/.gitignore but added as safety)
+webapp/node_modules/
+webapp/dist/
+
+# Env
+.env
+.env.local
