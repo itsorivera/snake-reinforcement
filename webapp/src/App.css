@@ -21,8 +21,8 @@
 
 .game-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-bottom: 2rem;
 }
 
@@ -36,6 +36,7 @@
   align-items: center;
   gap: 0.5rem;
   border: 1px solid rgba(0, 255, 66, 0.2);
+  width: fit-content;
 }
 
 .title {

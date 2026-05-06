@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as ort from 'onnxruntime-web';
-import { SnakeGame } from './SnakeGame';
-import './App.css';
-import { Activity, RotateCcw, Brain, Shield, Info } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import * as ort from "onnxruntime-web";
+import { SnakeGame } from "./SnakeGame";
+import "./App.css";
+import { Activity, RotateCcw, Brain, Shield, Info } from "lucide-react";
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,27 +11,31 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [status, setStatus] = useState('Cargando Cerebro Artificial...');
+  const [status, setStatus] = useState("Loading Artificial Brain...");
 
   // Cargar el modelo ONNX al inicio
   useEffect(() => {
     async function loadModel() {
       try {
-        // Estabilidad: Usar versión 1.19.0 (muy recomendada en foros de ONNX)
-        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
-        ort.env.wasm.numThreads = 1; // Evitar fallos de hilos en algunos navegadores
-        
-        // Buscamos el modelo en el folder public (se sirve en la raíz)
-        const sess = await ort.InferenceSession.create('/models/snake_model.onnx', {
-          executionProviders: ['wasm'],
-          graphOptimizationLevel: 'all'
-        });
+        // Stability: Use version 1.19.0 (highly recommended in ONNX forums)
+        ort.env.wasm.wasmPaths =
+          "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/";
+        ort.env.wasm.numThreads = 1; // Avoid thread failures in some browsers
+
+        // Look for the model in the public folder (served at root)
+        const sess = await ort.InferenceSession.create(
+          "/models/snake_model.onnx",
+          {
+            executionProviders: ["wasm"],
+            graphOptimizationLevel: "all",
+          },
+        );
         setSession(sess);
         setIsModelLoaded(true);
-        setStatus('Modelo DQN (PPO) Listo');
+        setStatus("DQN (PPO) Model Ready");
       } catch (e) {
         console.error(e);
-        setStatus('Error al cargar modelo. ¿Ejecutaste el script de exportación?');
+        setStatus("Error loading model. Did you run the export script?");
       }
     }
     loadModel();
@@ -43,20 +47,24 @@ const App: React.FC = () => {
 
     const interval = setInterval(async () => {
       if (game.isGameOver) {
-        setHighScore(prev => Math.max(prev, game.score));
+        setHighScore((prev) => Math.max(prev, game.score));
         game.reset();
         return;
       }
 
       // 1. Obtener observación del estado actual
       const obs = game.getObservation();
-      const inputTensor = new ort.Tensor('float32', new Float32Array(obs), [1, 11]);
+      const inputTensor = new ort.Tensor(
+        "float32",
+        new Float32Array(obs),
+        [1, 11],
+      );
 
       // 2. Inferencia: El modelo decide el movimiento
       try {
         const outputs = await session.run({ input: inputTensor });
         const outputData = outputs.output.data as Float32Array;
-        
+
         // El modelo exportado devuelve logits por cada acción (0-3)
         // Seleccionamos el índice con el valor más alto (Argmax)
         let action = 0;
@@ -67,7 +75,7 @@ const App: React.FC = () => {
             action = i;
           }
         }
-        
+
         // 3. Ejecutar acción en el juego
         game.step(action);
         setScore(game.score);
@@ -83,30 +91,36 @@ const App: React.FC = () => {
   const render = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Fondo
-    ctx.fillStyle = '#0a0a0c';
+    ctx.fillStyle = "#0a0a0c";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Grid sutil
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     for (let i = 0; i < canvas.width; i += 20) {
-      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(canvas.width, i);
+      ctx.stroke();
     }
 
     // Comida
-    ctx.fillStyle = '#ff4d4d';
+    ctx.fillStyle = "#ff4d4d";
     ctx.shadowBlur = 15;
-    ctx.shadowColor = '#ff4d4d';
+    ctx.shadowColor = "#ff4d4d";
     ctx.fillRect(game.food.x * 20 + 2, game.food.y * 20 + 2, 16, 16);
     ctx.shadowBlur = 0;
 
     // Serpiente
     game.snake.forEach((segment, i) => {
-      ctx.fillStyle = i === 0 ? '#00ff42' : '#22c55e';
+      ctx.fillStyle = i === 0 ? "#00ff42" : "#22c55e";
       ctx.fillRect(segment.x * 20 + 1, segment.y * 20 + 1, 18, 18);
     });
   };
@@ -115,17 +129,17 @@ const App: React.FC = () => {
     <div className="dashboard">
       <main className="game-container">
         <header className="game-header">
+          <h1 className="title">Snake RL Agent</h1>
           <div className="status-badge">
             <Activity className="icon-pulse" size={16} />
             <span>{status}</span>
           </div>
-          <h1 className="title">Snake RL Agent</h1>
         </header>
-        
-        <canvas 
-          ref={canvasRef} 
-          width={400} 
-          height={400} 
+
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={400}
           className="game-canvas"
         />
 
@@ -140,16 +154,18 @@ const App: React.FC = () => {
         <div className="card">
           <div className="card-header">
             <Brain size={20} className="text-primary" />
-            <h3>Agente Inteligente</h3>
+            <h3>Intelligent Agent</h3>
           </div>
-          <p className="card-desc">Red Neuronal: PPO (Proximal Policy Optimization)</p>
+          <p className="card-desc">
+            Neural Network: PPO (Proximal Policy Optimization)
+          </p>
           <div className="stat-grid">
             <div className="stat-item">
-              <span className="stat-label">Puntuación</span>
+              <span className="stat-label">Score</span>
               <span className="stat-value">{score}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Récord</span>
+              <span className="stat-label">Record</span>
               <span className="stat-value text-primary">{highScore}</span>
             </div>
           </div>
@@ -170,7 +186,10 @@ const App: React.FC = () => {
 
         <div className="info-card">
           <Info size={20} />
-          <p>La serpiente está siendo controlada por una red neuronal ejecutándose directamente en tu navegador (WASM).</p>
+          <p>
+            The snake is being controlled by a neural network running directly
+            in your browser (WASM).
+          </p>
         </div>
       </aside>
     </div>
