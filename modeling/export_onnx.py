@@ -1,7 +1,12 @@
 import torch
+import yaml
 from stable_baselines3 import PPO
 from snake_env import SnakeEnv
 import os
+
+def load_config(config_path="config.yaml"):
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
 
 class OnnxablePolicy(torch.nn.Module):
     def __init__(self, policy):
@@ -9,19 +14,26 @@ class OnnxablePolicy(torch.nn.Module):
         self.policy = policy
 
     def forward(self, observation):
-        # Extraer características y pasar por el extractor MLP
-        # Esto es lo más standard para exportar SB3
+        # Extract features and pass through MLP extractor
         features = self.policy.extract_features(observation)
         latent_pi, _ = self.policy.mlp_extractor(features)
         return self.policy.action_net(latent_pi)
 
 def export():
-    # Cargar el modelo entrenado
-    model_path = "models/snake_ppo_model.zip"
+    config = load_config()
+    
+    # Priority: Export the BEST model found during evaluation
+    model_path = os.path.join(config['training']['best_model_path'], "best_model.zip")
+    
     if not os.path.exists(model_path):
-        print(f"Error: No se encontró el modelo en {model_path}. Entrena primero.")
+        print(f"Warning: Best model not found at {model_path}. Trying final model...")
+        model_path = f"{config['training']['save_path']}.zip"
+        
+    if not os.path.exists(model_path):
+        print(f"Error: No model found. Run training first.")
         return
 
+    print(f"Loading model from: {model_path}")
     model = PPO.load(model_path, device="cpu")
     
     # Crear el wrapper para exportación
