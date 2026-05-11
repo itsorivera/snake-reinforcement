@@ -1,23 +1,80 @@
-from stable_baselines3 import PPO
-from snake_env import SnakeEnv
 import os
+import yaml
+import mlflow
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.monitor import Monitor
+from snake_env import SnakeEnv
+
+def load_config(config_path="config.yaml"):
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
 
 def train():
-    # Create environment
-    env = SnakeEnv(grid_size=20)
+    # Load configuration
+    config = load_config()
     
-    # Create PPO model (Proximal Policy Optimization)
-    # MlpPolicy is ideal for observation vectors
-    model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.0003, n_steps=2048)
+    # Configure MLflow
+    mlflow.set_experiment("Snake-RL-Project")
     
-    print("Starting training...")
-    # Train for 100,000 steps (adjustable according to hardware)
-    model.learn(total_timesteps=100000)
-    
-    # Save model
+    # Create directories
     os.makedirs("models", exist_ok=True)
-    model.save("models/snake_ppo_model")
-    print("Model saved to models/snake_ppo_model.zip")
+    os.makedirs("logs", exist_ok=True)
+    
+    # Start MLflow run
+    with mlflow.start_run(run_name="PPO-Snake-Training"):
+        # Log hyperparameters and configuration
+        mlflow.log_params(config['hyperparameters'])
+        mlflow.log_params(config['env'])
+        mlflow.log_artifact("config.yaml")
+        
+        # Create environment with Monitor for logging
+        env = SnakeEnv(grid_size=config['env']['grid_size'])
+        env = Monitor(env)
+        
+        # Create separate evaluation environment
+        eval_env = SnakeEnv(grid_size=config['env']['grid_size'])
+        eval_env = Monitor(eval_env)
+        
+        # Setup Evaluation Callback
+        eval_callback = EvalCallback(
+            eval_env, 
+            best_model_save_path=config['training']['best_model_path'],
+            log_path="logs/eval", 
+            eval_freq=config['training']['eval_freq'],
+            deterministic=True, 
+            render=False,
+            n_eval_episodes=config['training']['n_eval_episodes']
+        )
+        
+        # Create PPO model
+        model = PPO(
+            "MlpPolicy", 
+            env, 
+            verbose=1, 
+            device="cpu", # Ensure reproducibility across environments
+            **config['hyperparameters']
+        )
+        
+        print(f"Starting training for {config['training']['total_timesteps']} steps...")
+        
+        # Train with callback
+        model.learn(
+            total_timesteps=config['training']['total_timesteps'],
+            callback=eval_callback
+        )
+        
+        # Save and Log artifacts
+        final_model_path = config['training']['save_path']
+        model.save(final_model_path)
+        
+        # MLflow Logs
+        mlflow.log_artifact(f"{final_model_path}.zip")
+        mlflow.log_artifact(f"{config['training']['best_model_path']}/best_model.zip")
+        
+        print(f"Training complete. Logs available in MLflow.")
+        print(f"Final model: {final_model_path}.zip")
+        print(f"Best model: {config['training']['best_model_path']}/best_model.zip")
 
 if __name__ == "__main__":
     train()
