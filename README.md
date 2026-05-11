@@ -1,6 +1,6 @@
 # Snake Reinforcement Learning
 
-This project demonstrates a **MLOps** pipeline for training and deploying a Reinforcement Learning (RL) agent.
+This project demonstrates a professional **MLOps** pipeline for training and deploying a Reinforcement Learning (RL) agent.
 
 ![Snake Game](/assets/ai-snake.png)
 
@@ -10,28 +10,32 @@ The project is divided into two ecosystems to simulate a real-world industry wor
 
 ### 1. Modeling & Training (`/modeling`)
 
-- **Environment:** Custom `Gymnasium` (OpenAI Gym) implementation for Snake.
+- **Environment:** Custom `Gymnasium` implementation for Snake.
 - **Algorithm:** **PPO (Proximal Policy Optimization)** using `Stable Baselines 3`.
-- **Management:** `uv` (Rust-based Python package manager) for maximum speed and reproducibility.
-- **Pipeline:** Training in Python → Export to **ONNX** for interoperability.
+- **Management:** `uv` (Rust-based Python manager) for speed and reproducibility.
+- **Experiment Tracking:** **MLflow** for logging hyperparameters, metrics, and model artifacts.
+- **Validation:** Automated evaluation using `EvalCallback` to track the best model during training.
+- **Testing:** Unit tests with `pytest` to guarantee environment logic integrity.
+- **Config:** Decoupled configuration via `config.yaml` for flexible experimentation.
 
 ### 2. Web Deployment (`/webapp`)
 
 - **Edge Inference:** Real-time model execution using `ONNX Runtime Web` (WASM).
 - **Frontend:** React + TypeScript + Vite.
-- **Dashboard:** Visualization of inference metrics and agent state.
+- **Pipeline:** Automated export of the _best_ trained model to **ONNX**.
 
 ## Tech Stack
 
 - **ML:** Python, Gymnasium, Stable Baselines 3, PyTorch.
-- **DevOps/MLOps:** `uv`, ONNX, Model Exportation Pipeline.
-- **Frontend:** React 18, TypeScript, TailwindCSS (custom styles), Lucide Icons.
+- **Ops:** **MLflow**, `uv`, ONNX, Pytest, PyYAML.
+- **Frontend:** React 18, TypeScript, TailwindCSS.
 
-## Engineering Decisions
+## ML Engineering Decisions
 
-1.  **Hybrid Approach:** Instead of training in the browser (slow and unstable), we train in Python (research standard) and deploy on the web (product standard).
-2.  **Observation Vector:** Design of an 11-dimensional state space including proximity sensors and relative food direction, optimizing model convergence.
-3.  **WASM vs Server-side:** The model runs 100% on the client side. This reduces latency to <1ms and eliminates server costs for inference.
+1.  **Hybrid Deployment:** Training in Python (research standard) and deploying via ONNX/WASM on the client side (product standard) for 0ms latency and 0$ server costs.
+2.  **Continuous Validation:** Using a separate evaluation environment during training to prevent overfitting and ensure we only deploy the "Best" performing model.
+3.  **Decoupled Configuration:** Moving all hyperparameters to `config.yaml` to allow for rapid iteration and systematic hyperparameter tuning without touching the code.
+4.  **Integrity Testing:** Implementing unit tests for the custom RL environment to ensure the agent learns from correct game physics (collisions, rewards).
 
 ---
 
@@ -42,18 +46,34 @@ The project is divided into two ecosystems to simulate a real-world industry wor
 - Python 3.11+ (with `uv`)
 - Node.js 18+
 
-### Training
+### Setup & Testing
 
 ```bash
+# Install dependencies
 cd modeling
-uv run python train.py
-uv run python export_onnx.py
+uv sync
+
+# Run Unit Tests
+uv run pytest test_env.py
 ```
 
-### Frontend
+### Training & Tracking
 
 ```bash
-cd webapp
-npm install
-npm run dev
+# Start Training (logs to MLflow)
+uv run python train.py
+
+# View Experiment Logs
+uv run mlflow ui
+```
+
+### Export & Frontend
+
+```bash
+# Export best model to ONNX
+uv run python export_onnx.py
+
+# Run Web App
+cd ../webapp
+npm install && npm run dev
 ```
